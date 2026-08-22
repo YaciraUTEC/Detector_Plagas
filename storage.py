@@ -1,4 +1,5 @@
 import os
+import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -53,10 +54,33 @@ def init_db():
             tipo_problema TEXT NOT NULL,
             severidad TEXT NOT NULL,
             observation TEXT NOT NULL,
-            recommendation TEXT NOT NULL
+            descripcion_general TEXT NOT NULL DEFAULT 'No disponible.',
+            recommendation TEXT NOT NULL,
+            prevention TEXT NOT NULL DEFAULT 'No disponible.'
         )
         """
     )
+
+    # Migración: agrega columnas si la base de datos ya
+    # existía de una versión anterior que no las tenía.
+    columnas = [
+        fila[1]
+        for fila in conexion.execute("PRAGMA table_info(plantas)")
+    ]
+
+    columnas_faltantes = {
+        "prevention": "TEXT NOT NULL DEFAULT 'No disponible.'",
+        "descripcion_general": "TEXT NOT NULL DEFAULT 'No disponible.'",
+    }
+
+    for columna, definicion in columnas_faltantes.items():
+
+        if columna not in columnas:
+
+            conexion.execute(
+                f"ALTER TABLE plantas ADD COLUMN {columna} "
+                f"{definicion}"
+            )
 
     conexion.commit()
     conexion.close()
@@ -98,15 +122,25 @@ def guardar_analisis(
 
     conexion = sqlite3.connect(DB_PATH)
 
+    recommendation = resultado.get("recommendation") or []
+    prevention = resultado.get("prevention") or []
+
+    if not isinstance(recommendation, list):
+        recommendation = [str(recommendation)]
+
+    if not isinstance(prevention, list):
+        prevention = [str(prevention)]
+
     cursor = conexion.execute(
         """
         INSERT INTO plantas (
             fecha, imagen_archivo, status,
             nombre_planta, nombre_cientifico, familia,
             hoja, tallo, epoca, clima, riego,
-            tipo_problema, severidad, observation, recommendation
+            tipo_problema, severidad, observation,
+            descripcion_general, recommendation, prevention
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             fecha,
@@ -123,7 +157,9 @@ def guardar_analisis(
             resultado.get("tipo_problema", "desconocido"),
             resultado.get("severidad", "desconocida"),
             resultado.get("observation", ""),
-            resultado.get("recommendation", ""),
+            resultado.get("descripcion_general", "No disponible."),
+            json.dumps(recommendation, ensure_ascii=False),
+            json.dumps(prevention, ensure_ascii=False),
         )
     )
 
@@ -139,6 +175,29 @@ def guardar_analisis(
 # ============================================================
 # CONVERTIR FILA -> DICCIONARIO
 # ============================================================
+
+def _decodificar_lista(valor: str) -> list:
+    """
+    Decodifica un campo guardado como JSON (array de strings).
+    Si la fila es de una versión anterior donde se guardaba
+    como texto plano, lo envuelve en una lista de un elemento.
+    """
+
+    if not valor:
+        return []
+
+    try:
+
+        decodificado = json.loads(valor)
+
+        if isinstance(decodificado, list):
+            return [str(item) for item in decodificado if str(item).strip()]
+
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    return [valor]
+
 
 def _fila_a_dict(fila: sqlite3.Row) -> dict:
 
@@ -178,7 +237,11 @@ def _fila_a_dict(fila: sqlite3.Row) -> dict:
 
         "observation": fila["observation"],
 
-        "recommendation": fila["recommendation"],
+        "descripcion_general": fila["descripcion_general"],
+
+        "recommendation": _decodificar_lista(fila["recommendation"]),
+
+        "prevention": _decodificar_lista(fila["prevention"]),
 
     }
 

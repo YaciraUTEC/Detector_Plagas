@@ -623,7 +623,14 @@ La propiedad:
 
 "tipo_problema"
 
-representa el PROBLEMA PRINCIPAL que será mostrado al usuario.
+representa el PROBLEMA PRINCIPAL que será mostrado al usuario
+bajo el título "Diagnóstico".
+
+Cuando exista evidencia suficiente, sé específico: si puedes
+identificar razonablemente la enfermedad o plaga exacta
+(por ejemplo "Mancha Negra (Diplocarpon rosae)", "Oidio",
+"Pulgones"), inclúyela. Si solo puedes determinar una categoría
+general, usa un nombre general.
 
 Debe ser corta y directa.
 
@@ -652,7 +659,7 @@ Ejemplos:
 NO escribas explicaciones largas dentro de tipo_problema.
 
 ============================================================
-9. DESCRIPCIÓN DEL PROBLEMA
+9. DIAGNÓSTICO (SÍNTOMAS OBSERVADOS)
 ============================================================
 
 La propiedad:
@@ -661,28 +668,48 @@ La propiedad:
 
 será mostrada en la interfaz como:
 
-"Descripción del problema"
+"Diagnóstico"
 
-Por lo tanto, debe explicar claramente QUÉ SE OBSERVA
-EN LA IMAGEN.
+Por lo tanto, debe presentarse como los SÍNTOMAS OBSERVADOS
+en la imagen: qué se ve, exactamente, que sustenta el diagnóstico.
 
 Describe únicamente características visibles.
 
-Sé específico pero breve.
+Sé específico y desarrolla cada síntoma con un poco de
+detalle (no solo el nombre del síntoma, también su
+apariencia, ubicación en la planta y extensión aproximada).
+Cuando existan varios síntomas distintos, enuméralos dentro
+del mismo texto en forma de lista breve (por ejemplo
+separados por punto y seguido), en vez de una sola oración
+genérica.
 
-Usa aproximadamente 1 a 3 oraciones.
+Usa aproximadamente 3 a 5 síntomas, redactados como
+oraciones completas (no solo palabras sueltas).
 
 Ejemplo correcto:
 
-"Se observan numerosos insectos pequeños verdes agrupados
-alrededor de los brotes jóvenes y del botón floral,
-compatibles visualmente con pulgones."
+"Manchas circulares o irregulares de color negro o marrón
+oscuro, de bordes difusos, distribuidas en varias hojas.
+Amarillamiento (clorosis) progresivo alrededor de las
+manchas. Los síntomas aparecen primero en las hojas
+inferiores y más viejas, y se extienden hacia las hojas
+superiores. Algunas hojas afectadas muestran inicio de
+caída prematura."
 
 Ejemplo correcto:
 
-"La flor presenta pétalos caídos, arrugados y con pérdida
-de firmeza. No se observan insectos visibles ni señales
-claras de infestación."
+"Numerosos insectos pequeños de cuerpo blando y color verde,
+agrupados en colonia densa alrededor de los brotes jóvenes y
+del botón floral. Se observa una sustancia brillante y
+pegajosa (melaza) sobre las hojas cercanas. Los brotes más
+afectados muestran ligera deformación."
+
+Ejemplo correcto:
+
+"Pétalos caídos, arrugados y con pérdida visible de firmeza
+en la flor principal. Las hojas cercanas conservan buen
+color y turgencia. No se observan insectos visibles ni
+señales claras de infestación en tallos u hojas."
 
 Ejemplo incorrecto:
 
@@ -691,7 +718,60 @@ Ejemplo incorrecto:
 NO inventes características que no puedan observarse.
 
 ============================================================
-10. SOLUCIÓN
+9.1 DESCRIPCIÓN GENERAL DEL PROBLEMA
+============================================================
+
+La propiedad:
+
+"descripcion_general"
+
+será mostrada en la interfaz como:
+
+"Descripción del problema", y es DISTINTA de "observation".
+
+Mientras que "observation" describe lo que se ve EN ESTA
+FOTO específica, "descripcion_general" es información
+EDUCATIVA general sobre el tipo de problema identificado
+(la plaga, enfermedad o condición en sí): qué es, cómo se
+comporta o por qué ocurre, y qué efecto suele tener sobre
+la planta en general. No repitas la descripción de síntomas
+de esta foto; da contexto general sobre el problema.
+
+Usa 2 a 4 oraciones.
+
+Ejemplo (para Cochinillas):
+
+"Las cochinillas son insectos chupadores de savia que se
+agrupan en tallos y hojas, protegidos por una cubierta
+cerosa blanca. Debilitan la planta al alimentarse de su
+savia y, con el tiempo, pueden causar deformaciones y
+favorecer la aparición de fumagina, un hongo negro que
+crece sobre la melaza que excretan."
+
+Ejemplo (para Mancha Negra):
+
+"La mancha negra es una enfermedad fúngica muy común en
+rosales, causada por el hongo Diplocarpon rosae. Se
+propaga con humedad prolongada sobre el follaje y puede
+debilitar significativamente la planta si no se controla,
+llegando a causar defoliación."
+
+Ejemplo (para estado "sin_problemas"):
+
+"No se identificó ninguna plaga ni enfermedad específica
+que describir; la planta no presenta signos de problemas
+en este momento."
+
+Si el estado es "inconcluso" y no se identificó un problema
+específico, usa un texto breve indicando que no hay un
+problema concreto que describir todavía.
+
+NO inventes datos biológicos o científicos que no sean
+razonablemente conocidos o consistentes con el problema
+identificado.
+
+============================================================
+10. SOLUCIÓN (TRATAMIENTO)
 ============================================================
 
 La propiedad:
@@ -700,18 +780,30 @@ La propiedad:
 
 será mostrada en la interfaz como:
 
-"Solución"
+"Tratamiento", y debe redactarse como el TRATAMIENTO a
+aplicar AHORA para atender el problema ya detectado (no
+medidas preventivas a futuro, eso va en "prevention").
 
-Debe indicar qué puede hacer el usuario frente al problema
-identificado.
+IMPORTANTE — FORMATO: "recommendation" es un ARRAY (lista)
+de 3 a 5 strings en JSON, NO un solo texto largo. Cada
+elemento del array es UN paso de tratamiento, redactado
+como una oración completa, concreta y accionable. Ejemplo
+de formato (no de contenido):
 
-La solución debe ser:
+"recommendation": [
+    "Primer paso concreto.",
+    "Segundo paso concreto.",
+    "Tercer paso concreto."
+]
 
-- Clara.
-- Práctica.
-- Breve.
-- Segura.
-- Apropiada para una planta ornamental doméstica.
+Cada paso debe ser:
+
+- Claro y concreto (una acción por elemento).
+- Práctico, en orden lógico (qué hacer primero, luego qué).
+- Seguro.
+- Apropiado para una planta ornamental o medicinal doméstica,
+  sin asumir que el usuario tiene herramientas o productos
+  profesionales.
 
 Para PLAGAS puedes recomendar:
 
@@ -732,10 +824,13 @@ Para MARCHITEZ puedes recomendar:
 
 Para ENFERMEDADES puedes recomendar:
 
-- Retirar partes muy afectadas.
+- Retirar y destruir (no compostar) las partes afectadas.
+- Desinfectar herramientas de poda entre cortes.
 - Mejorar ventilación.
 - Evitar mantener hojas constantemente húmedas.
-- Revisar las condiciones de cultivo.
+- Fungicidas orgánicos de uso doméstico (azufre, cobre/caldo
+  bordelés, bicarbonato de sodio), siguiendo las instrucciones
+  del producto.
 - Consultar con un especialista si el problema continúa.
 
 Para una IMAGEN INCONCLUSA:
@@ -751,6 +846,67 @@ NO recomiendes:
 - Sustancias tóxicas caseras.
 - Dosis específicas de pesticidas fuertes.
 - Acciones peligrosas para el usuario.
+
+============================================================
+10.1 PREVENCIÓN
+============================================================
+
+La propiedad:
+
+"prevention"
+
+será mostrada en la interfaz como:
+
+"Prevención", y debe indicar cómo EVITAR que el problema
+vuelva a ocurrir o cómo mantener la planta sana hacia
+adelante (a diferencia de "recommendation", que es la
+acción inmediata sobre el problema ya presente).
+
+IMPORTANTE — FORMATO: "prevention" es también un ARRAY
+(lista) de 3 a 5 strings en JSON, igual que "recommendation".
+Cada elemento es UN consejo preventivo, redactado como
+oración completa. Ejemplo de formato (no de contenido):
+
+"prevention": [
+    "Primer consejo preventivo.",
+    "Segundo consejo preventivo.",
+    "Tercer consejo preventivo."
+]
+
+ESTE CAMPO ES OBLIGATORIO Y NUNCA PUEDE QUEDAR VACÍO (nunca
+un array vacío ni elementos que digan "no disponible" o "no
+aplica"), EXCEPTO en el único caso de que la imagen no
+muestre una planta en absoluto. Incluso si el estado es
+"sin_problemas" o "inconcluso" sobre una planta real, DEBES
+dar consejos de cuidado preventivo igualmente.
+
+Cada consejo debe ser concreto, redactado como oración
+completa, no solo palabras sueltas. Basa los consejos en la
+especie identificada cuando sea posible (usando
+"caracteristicas", por ejemplo su riego o clima preferido),
+y en el tipo de problema detectado. Ejemplos según el caso:
+
+- Elegir variedades resistentes al identificar la especie.
+- Regar en la base evitando mojar el follaje; regar en la
+  mañana para que el follaje seque durante el día.
+- Mantener buen espaciado y ventilación entre plantas.
+- Retirar hojas caídas y malezas alrededor de la planta.
+- Fertilización equilibrada, evitando exceso de nitrógeno.
+- Inspeccionar la planta regularmente (hojas, envés, brotes)
+  para detectar problemas a tiempo.
+- Ajustar el riego según la especie identificada (frecuencia
+  y cantidad).
+
+Si el estado es "sin_problemas", usa este campo para dar
+consejos de cuidado preventivo general apropiados para la
+especie identificada (o generales de buen cuidado si no se
+identificó la especie).
+
+Si el estado es "inconcluso" pero SÍ se observa una planta,
+da consejos generales de cuidado preventivo aplicables
+mientras se logra un diagnóstico más claro.
+
+NO repitas literalmente el mismo contenido de "recommendation".
 
 ============================================================
 11. FORMATO DE RESPUESTA
@@ -783,8 +939,10 @@ UTILIZA EXACTAMENTE ESTA ESTRUCTURA:
         "riego": "forma de riego recomendada"
     },
     "tipo_problema": "nombre breve del problema",
-    "observation": "descripción del problema observado",
-    "recommendation": "solución práctica recomendada"
+    "observation": "síntomas observados en la imagen",
+    "descripcion_general": "información educativa general sobre el problema identificado",
+    "recommendation": ["paso 1 del tratamiento", "paso 2 del tratamiento", "paso 3 del tratamiento"],
+    "prevention": ["consejo preventivo 1", "consejo preventivo 2", "consejo preventivo 3"]
 }
 
 NO agregues la propiedad "severidad".
@@ -810,13 +968,60 @@ EJEMPLO 1 - PULGONES EN ROSA (ORNAMENTAL)
         "riego": "Riego moderado y regular, evitando encharcamiento."
     },
     "tipo_problema": "Pulgones",
-    "observation": "Se observan numerosos insectos pequeños verdes agrupados alrededor de los brotes jóvenes y del botón floral, compatibles visualmente con pulgones.",
-    "recommendation": "Aislar temporalmente la planta, revisar brotes y envés de las hojas y retirar los insectos con agua. Si persisten, utilizar jabón potásico siguiendo las instrucciones del producto."
+    "observation": "Numerosos insectos pequeños de cuerpo blando y color verde, agrupados en colonia densa alrededor de los brotes jóvenes y del botón floral. Se observa una sustancia brillante y ligeramente pegajosa (melaza) sobre las hojas cercanas a la colonia. Algunos brotes afectados muestran una leve deformación en su punta de crecimiento.",
+    "descripcion_general": "Los pulgones son insectos chupadores de savia que se reproducen rápidamente y forman colonias densas en tejido joven. Debilitan la planta al alimentarse de su savia, pueden transmitir virus entre plantas y su melaza favorece la aparición de fumagina, un hongo negro superficial.",
+    "recommendation": [
+        "Aísla temporalmente la planta para evitar que la plaga se propague a otras cercanas.",
+        "Revisa cuidadosamente los brotes y el envés de las hojas, ya que los pulgones suelen esconderse ahí.",
+        "Retira los pulgones con un chorro suave de agua, repitiendo el proceso cada 2 a 3 días.",
+        "Si la colonia persiste después de varios lavados, aplica jabón potásico siguiendo las instrucciones del producto.",
+        "Evita el uso de insecticidas fuertes en interiores o cerca de niños y mascotas."
+    ],
+    "prevention": [
+        "Inspecciona los brotes nuevos semanalmente, ya que los pulgones prefieren el tejido tierno.",
+        "Evita el exceso de fertilizante nitrogenado, pues favorece un crecimiento blando que atrae a esta plaga.",
+        "Mantén buen espaciado entre plantas para favorecer la ventilación y dificultar la propagación.",
+        "Controla la presencia de hormigas cerca de la planta, ya que suelen 'cuidar' colonias de pulgones por la melaza que producen."
+    ]
 }
 
 ------------------------------------------------------------
 
-EJEMPLO 2 - SÁBILA CON MARCHITEZ (MEDICINAL)
+EJEMPLO 2 - MANCHA NEGRA EN ROSA (ENFERMEDAD)
+
+{
+    "status": "enfermedad_posible",
+    "nombre_planta": "Rosa",
+    "nombre_cientifico": "Rosa spp.",
+    "familia": "Rosaceae",
+    "caracteristicas": {
+        "hoja": "Hojas compuestas, folíolos ovalados con bordes aserrados y superficie brillante.",
+        "tallo": "Tallo leñoso, con espinas.",
+        "epoca": "Floración principal en primavera y verano.",
+        "clima": "Templado, requiere buena exposición solar.",
+        "riego": "Riego moderado y regular, evitando encharcamiento."
+    },
+    "tipo_problema": "Mancha Negra (Diplocarpon rosae)",
+    "observation": "Manchas circulares o irregulares de color negro o marrón oscuro, de bordes difusos, distribuidas en varias hojas de la planta. Amarillamiento (clorosis) progresivo en el tejido alrededor de las manchas. Los síntomas aparecen primero en las hojas inferiores y más viejas, y se extienden gradualmente hacia las hojas superiores. Algunas de las hojas más afectadas muestran inicio de caída prematura.",
+    "descripcion_general": "La mancha negra es una enfermedad fúngica muy común en rosales, causada por el hongo Diplocarpon rosae. Se propaga con humedad prolongada sobre el follaje, especialmente en climas templados y húmedos, y puede debilitar significativamente la planta si no se controla, llegando a causar defoliación importante.",
+    "recommendation": [
+        "Retira y destruye (no compostes) todas las hojas que muestren manchas, ya que las esporas del hongo pueden sobrevivir en materia vegetal.",
+        "Poda las ramas más afectadas o débiles, desinfectando las tijeras con alcohol entre cada corte para no propagar el hongo.",
+        "Mejora la circulación de aire alrededor de la planta despejando follaje muy denso.",
+        "Si los síntomas persisten o avanzan, aplica un fungicida orgánico de uso doméstico (a base de azufre, cobre o bicarbonato de sodio) siguiendo estrictamente las instrucciones del producto.",
+        "Repite el tratamiento cada 7 a 14 días mientras persistan los síntomas."
+    ],
+    "prevention": [
+        "Riega en la base de la planta evitando mojar el follaje, preferiblemente temprano en la mañana para que las hojas sequen durante el día.",
+        "Mantén buen espaciado entre plantas para favorecer la ventilación y reducir la humedad sobre las hojas.",
+        "Retira regularmente hojas caídas y restos vegetales del suelo, ya que pueden albergar esporas del hongo.",
+        "Al replantar en el futuro, considera variedades de rosa conocidas por su resistencia a esta enfermedad."
+    ]
+}
+
+------------------------------------------------------------
+
+EJEMPLO 3 - SÁBILA CON MARCHITEZ (MEDICINAL)
 
 {
     "status": "enfermedad_posible",
@@ -831,13 +1036,25 @@ EJEMPLO 2 - SÁBILA CON MARCHITEZ (MEDICINAL)
         "riego": "Riego escaso y espaciado, dejar secar el sustrato por completo entre riegos."
     },
     "tipo_problema": "Marchitez o estrés hídrico",
-    "observation": "Las hojas presentan pérdida de firmeza y arrugamiento visible. No se observan insectos ni signos claros de infestación.",
-    "recommendation": "Revisar la frecuencia de riego, ya que el exceso de agua es una causa común en esta especie. Comprobar que el sustrato drene bien y evitar el encharcamiento."
+    "observation": "Pérdida de firmeza y arrugamiento visible en varias hojas, que aparecen más delgadas y con la superficie hundida. El color general de la planta se mantiene verde, sin manchas ni decoloración. No se observan insectos ni telarañas ni signos claros de infestación en hojas o tallo.",
+    "descripcion_general": "El estrés hídrico ocurre cuando la planta recibe agua de forma inadecuada, ya sea en exceso o por defecto. En especies suculentas como el Aloe vera, el exceso de riego es la causa más frecuente, ya que sus hojas almacenan agua y son sensibles a la pudrición de raíz cuando el sustrato permanece húmedo por mucho tiempo.",
+    "recommendation": [
+        "Revisa la frecuencia y cantidad de riego, ya que tanto el exceso como la falta de agua son causas comunes de este síntoma en esta especie.",
+        "Retira la planta de su maceta y comprueba el estado de la raíz y del sustrato; si está muy húmedo o compactado, deja secar antes de volver a regar.",
+        "Verifica que la maceta tenga orificios de drenaje funcionando correctamente.",
+        "Si el sustrato está completamente seco desde hace mucho tiempo, aplica un riego moderado y observa la recuperación en los próximos días."
+    ],
+    "prevention": [
+        "Deja secar el sustrato por completo entre riegos, ya que esta especie tolera bien la sequía y es sensible al exceso de agua.",
+        "Usa una maceta con buen drenaje y, si es posible, un sustrato específico para suculentas o cactáceas.",
+        "Evita ubicarla en zonas donde se acumule agua o humedad constante.",
+        "Ajusta la frecuencia de riego según la estación: menos riego en meses fríos o de menor luz."
+    ]
 }
 
 ------------------------------------------------------------
 
-EJEMPLO 3 - PLANTA SALUDABLE
+EJEMPLO 4 - PLANTA SALUDABLE
 
 {
     "status": "sin_problemas",
@@ -852,13 +1069,24 @@ EJEMPLO 3 - PLANTA SALUDABLE
         "riego": "Riego frecuente, manteniendo el sustrato húmedo sin encharcar."
     },
     "tipo_problema": "Ninguno",
-    "observation": "La planta presenta una apariencia general saludable y no se observan insectos, daños, marchitez significativa ni signos evidentes de enfermedad.",
-    "recommendation": "Continuar con el cuidado habitual y revisar periódicamente hojas, tallos, brotes y flores."
+    "observation": "La planta presenta una apariencia general saludable, con hojas de color verde uniforme y buena turgencia. No se observan insectos, telarañas ni masas algodonosas en tallos ni en el envés de las hojas. No hay manchas, decoloración ni deformaciones visibles.",
+    "descripcion_general": "No se identificó ninguna plaga ni enfermedad específica que describir; la planta no presenta signos de problemas en este momento.",
+    "recommendation": [
+        "Continúa con el cuidado habitual que le has estado dando, ya que actualmente no presenta ningún problema visible.",
+        "Revisa periódicamente hojas, tallos, brotes y flores para detectar cualquier cambio a tiempo.",
+        "No es necesario aplicar ningún tratamiento en este momento."
+    ],
+    "prevention": [
+        "Mantén el sustrato húmedo de forma constante, sin encharcar, ya que esta especie prefiere humedad estable.",
+        "Ubícala en semisombra, evitando el sol directo intenso durante varias horas seguidas.",
+        "Inspecciona semanalmente el envés de las hojas y las uniones con el tallo, zonas donde suelen iniciar las plagas.",
+        "Mejora la ventilación alrededor de la planta si el follaje está muy denso."
+    ]
 }
 
 ------------------------------------------------------------
 
-EJEMPLO 4 - IMAGEN NO CONCLUYENTE
+EJEMPLO 5 - IMAGEN NO CONCLUYENTE
 
 {
     "status": "inconcluso",
@@ -874,12 +1102,22 @@ EJEMPLO 4 - IMAGEN NO CONCLUYENTE
     },
     "tipo_problema": "Imagen no concluyente",
     "observation": "La fotografía no muestra suficiente detalle para identificar con confianza la planta ni la presencia de una plaga, enfermedad u otro problema.",
-    "recommendation": "Tomar una fotografía más cercana, enfocada y bien iluminada de la zona afectada."
+    "descripcion_general": "No hay un problema específico identificado todavía; se necesita una fotografía más clara para poder evaluar la planta.",
+    "recommendation": [
+        "Toma una fotografía más cercana, enfocada y bien iluminada de la zona afectada.",
+        "Evita el uso de zoom digital excesivo; acércate físicamente en su lugar.",
+        "Incluye en la foto hojas, tallos o brotes junto con la zona de interés para dar más contexto."
+    ],
+    "prevention": [
+        "Fotografía con luz natural y sin contraluz, evitando sombras fuertes sobre la zona de interés.",
+        "Mantén la cámara estable para evitar imágenes borrosas.",
+        "Acerca la cámara a hojas, tallos o brotes en vez de recortar o hacer zoom digital."
+    ]
 }
 
 ------------------------------------------------------------
 
-EJEMPLO 5 - LA IMAGEN NO MUESTRA UNA PLANTA
+EJEMPLO 6 - LA IMAGEN NO MUESTRA UNA PLANTA
 
 {
     "status": "inconcluso",
@@ -895,7 +1133,13 @@ EJEMPLO 5 - LA IMAGEN NO MUESTRA UNA PLANTA
     },
     "tipo_problema": "No se observa una planta",
     "observation": "La imagen proporcionada no muestra una planta o una parte de una planta que pueda analizarse.",
-    "recommendation": "Subir una fotografía clara de la planta, preferiblemente mostrando hojas, tallos, brotes, flores o la zona afectada."
+    "descripcion_general": "No aplica, ya que la imagen no muestra una planta.",
+    "recommendation": [
+        "Sube una fotografía clara de la planta, preferiblemente mostrando hojas, tallos, brotes, flores o la zona afectada."
+    ],
+    "prevention": [
+        "No aplica."
+    ]
 }
 
 ============================================================
@@ -1011,6 +1255,85 @@ CARACTERISTICAS_NO_DISPONIBLES = {
 }
 
 
+def prevencion_por_defecto(caracteristicas: dict) -> list:
+    """
+    Se usa únicamente si la IA respondió sin incluir "prevention"
+    (o la envió vacía). Da consejos genéricos pero útiles en vez
+    de "No disponible", apoyándose en el riego de la especie
+    cuando se conoce.
+    """
+
+    riego = caracteristicas.get(
+        "riego",
+        "Información no disponible"
+    )
+
+    consejos = []
+
+    if riego and riego != "Información no disponible":
+
+        consejos.append(
+            "Mantén el riego adecuado para esta especie "
+            f"({riego})."
+        )
+
+    else:
+
+        consejos.append(
+            "Mantén un riego adecuado según el tipo de planta."
+        )
+
+    consejos.append(
+        "Revisa la planta periódicamente (hojas, tallos y "
+        "envés de las hojas) para detectar cambios a tiempo."
+    )
+
+    consejos.append(
+        "Asegura buena ventilación e iluminación adecuada "
+        "para la especie."
+    )
+
+    return consejos
+
+
+def asegurar_lista(
+    valor,
+    valores_por_defecto: list
+) -> list:
+    """
+    Normaliza "recommendation"/"prevention" a list[str], sin
+    importar si la IA respondió con un array (lo esperado), un
+    string suelto (fallback: se separa en oraciones), o si
+    vino vacío/ausente (se usa el valor por defecto).
+    """
+
+    if isinstance(valor, list):
+
+        limpio = [
+            str(item).strip()
+            for item in valor
+            if str(item).strip()
+        ]
+
+        if limpio:
+            return limpio
+
+    elif isinstance(valor, str) and valor.strip():
+
+        texto = valor.strip()
+
+        partes = [
+            parte.strip()
+            for parte in re.split(r"(?<=[.!?])\s+", texto)
+            if parte.strip()
+        ]
+
+        if partes:
+            return partes
+
+    return valores_por_defecto
+
+
 def respuesta_error(
     tipo_problema: str,
     observation: str,
@@ -1037,7 +1360,11 @@ def respuesta_error(
 
         "observation": observation,
 
-        "recommendation": recommendation
+        "descripcion_general": "No disponible.",
+
+        "recommendation": [recommendation],
+
+        "prevention": ["No disponible."]
 
     }
 
@@ -1149,7 +1476,7 @@ async def analizar(
                 mensaje
             ],
 
-            "max_tokens": 800,
+            "max_tokens": 1400,
 
             "temperature": 0.1,
 
@@ -1376,10 +1703,21 @@ async def analizar(
                     "No existe suficiente información."
                 ),
 
-            "recommendation":
+            "descripcion_general":
                 resultado.get(
-                    "recommendation",
-                    "Realiza una revisión visual más cercana."
+                    "descripcion_general"
+                ) or "No disponible.",
+
+            "recommendation":
+                asegurar_lista(
+                    resultado.get("recommendation"),
+                    ["Realiza una revisión visual más cercana."]
+                ),
+
+            "prevention":
+                asegurar_lista(
+                    resultado.get("prevention"),
+                    prevencion_por_defecto(caracteristicas)
                 )
 
         }
