@@ -4,9 +4,12 @@ import json
 import re
 import requests
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+
+import storage
 
 
 # ============================================================
@@ -32,9 +35,12 @@ MODEL = "nvidia/nemotron-nano-12b-v2-vl"
 # ============================================================
 
 app = FastAPI(
-    title="Detector de Plagas en Plantas Ornamentales",
+    title="PlantMedic IA",
     version="1.0"
 )
+
+
+storage.init_db()
 
 
 # ============================================================
@@ -51,6 +57,17 @@ app.add_middleware(
 
 
 # ============================================================
+# 3.1 ARCHIVOS ESTÁTICOS (FOTOS GUARDADAS)
+# ============================================================
+
+app.mount(
+    "/uploads",
+    StaticFiles(directory=storage.UPLOADS_DIR),
+    name="uploads"
+)
+
+
+# ============================================================
 # 4. RUTAS DE PRUEBA
 # ============================================================
 
@@ -58,7 +75,7 @@ app.add_middleware(
 def raiz():
 
     return {
-        "mensaje": "Backend funcionando ✅"
+        "mensaje": "PlantMedic IA — Backend funcionando ✅"
     }
 
 
@@ -81,22 +98,89 @@ def create_analysis_prompt(
 ) -> dict:
 
     prompt = """
-ERES UN ESPECIALISTA EN ENTOMOLOGÍA, FITOPATOLOGÍA
-Y CUIDADO DE PLANTAS ORNAMENTALES.
+ERES UN ESPECIALISTA EN ENTOMOLOGÍA, FITOPATOLOGÍA, BOTÁNICA
+Y CUIDADO DE PLANTAS ORNAMENTALES Y MEDICINALES.
 
-Tu tarea es analizar visualmente la fotografía proporcionada
-e identificar si la planta presenta una plaga, enfermedad,
-marchitez u otro problema visible.
+Tu tarea es analizar visualmente la fotografía proporcionada para:
+
+1. Identificar, en la medida de lo posible, la planta (ornamental
+   o medicinal) y sus características generales.
+
+2. Determinar si la planta presenta una plaga, enfermedad,
+   marchitez u otro problema visible.
 
 El objetivo principal del sistema es detectar PLAGAS,
-pero también debes reconocer otros problemas visibles de la planta.
+pero también debes reconocer otros problemas visibles de la planta
+y aportar información botánica útil sobre la especie observada.
 
 IMPORTANTE:
 
 - Analiza únicamente lo que realmente puede observarse en la imagen.
 - NO inventes plagas, enfermedades ni síntomas.
 - NO afirmes una causa si la imagen no proporciona evidencia suficiente.
-- Si existe incertidumbre, utiliza el estado "inconcluso".
+- Si existe incertidumbre sobre el problema, utiliza el estado "inconcluso".
+- NO inventes datos botánicos si la planta no puede identificarse
+  con una confianza razonable.
+
+============================================================
+0. IDENTIFICACIÓN DE LA PLANTA
+============================================================
+
+Antes de evaluar el problema, intenta identificar la planta
+observada. Puede ser una planta ORNAMENTAL (ej. rosa, geranio,
+petunia) o MEDICINAL (ej. manzanilla, aloe vera, menta, ruda,
+hierbabuena, sábila, orégano).
+
+Debes reportar:
+
+- "nombre_planta": nombre común más probable en español
+  (ej. "Rosa", "Aloe vera / Sábila", "Menta").
+
+- "nombre_cientifico": nombre científico (binomio latino)
+  si puede determinarse con confianza razonable
+  (ej. "Rosa spp.", "Aloe vera", "Mentha spicata").
+
+- "familia": familia botánica
+  (ej. "Rosaceae", "Asphodelaceae", "Lamiaceae").
+
+- "caracteristicas": objeto con información general de la especie
+  (no solo de la foto puntual, sino de la planta como especie):
+
+    - "hoja": forma y tipo de hoja característico de la especie
+      (ej. "Hojas ovaladas, bordes dentados, color verde intenso").
+
+    - "tallo": tipo de tallo característico
+      (ej. "Tallo leñoso y espinoso", "Tallo herbáceo y carnoso").
+
+    - "epoca": época de floración o crecimiento característica
+      (ej. "Primavera a verano", "Todo el año en climas cálidos").
+
+    - "clima": clima o condiciones ambientales que prefiere
+      (ej. "Templado a cálido, requiere buena luz solar").
+
+    - "riego": forma de riego recomendada para la especie
+      (ej. "Riego moderado, dejar secar el sustrato entre riegos").
+
+REGLAS DE IDENTIFICACIÓN:
+
+- Si reconoces la especie o al menos el género con confianza
+  razonable, completa todos los campos con la mejor información
+  botánica general disponible para esa especie.
+
+- Si NO puedes identificar la planta con confianza razonable
+  (imagen poco clara, especie no reconocible, o la imagen no
+  muestra una planta), utiliza:
+
+    "nombre_planta": "No identificada"
+    "nombre_cientifico": "No disponible"
+    "familia": "No disponible"
+
+  y en "caracteristicas" utiliza "Información no disponible"
+  en cada campo.
+
+- NO inventes un nombre científico o familia si no estás
+  razonablemente seguro. Es preferible indicar que no se
+  identificó la planta.
 
 ============================================================
 1. BUSCA PRIMERO PLAGAS O INSECTOS VISIBLES
@@ -684,10 +768,20 @@ NO agregues explicaciones antes del JSON.
 
 NO agregues explicaciones después del JSON.
 
-UTILIZA EXACTAMENTE ESTAS CUATRO PROPIEDADES:
+UTILIZA EXACTAMENTE ESTA ESTRUCTURA:
 
 {
     "status": "sin_problemas|plagas_presentes|enfermedad_posible|inconcluso",
+    "nombre_planta": "nombre común de la planta o 'No identificada'",
+    "nombre_cientifico": "nombre científico o 'No disponible'",
+    "familia": "familia botánica o 'No disponible'",
+    "caracteristicas": {
+        "hoja": "forma/tipo de hoja característico",
+        "tallo": "tipo de tallo característico",
+        "epoca": "época de floración o crecimiento",
+        "clima": "clima o condiciones que prefiere",
+        "riego": "forma de riego recomendada"
+    },
     "tipo_problema": "nombre breve del problema",
     "observation": "descripción del problema observado",
     "recommendation": "solución práctica recomendada"
@@ -695,16 +789,26 @@ UTILIZA EXACTAMENTE ESTAS CUATRO PROPIEDADES:
 
 NO agregues la propiedad "severidad".
 
-NO agregues ninguna propiedad adicional.
+NO agregues ninguna propiedad adicional fuera de las indicadas.
 
 ============================================================
 12. EJEMPLOS
 ============================================================
 
-EJEMPLO 1 - PULGONES
+EJEMPLO 1 - PULGONES EN ROSA (ORNAMENTAL)
 
 {
     "status": "plagas_presentes",
+    "nombre_planta": "Rosa",
+    "nombre_cientifico": "Rosa spp.",
+    "familia": "Rosaceae",
+    "caracteristicas": {
+        "hoja": "Hojas compuestas, folíolos ovalados con bordes aserrados y superficie brillante.",
+        "tallo": "Tallo leñoso, con espinas.",
+        "epoca": "Floración principal en primavera y verano.",
+        "clima": "Templado, requiere buena exposición solar.",
+        "riego": "Riego moderado y regular, evitando encharcamiento."
+    },
     "tipo_problema": "Pulgones",
     "observation": "Se observan numerosos insectos pequeños verdes agrupados alrededor de los brotes jóvenes y del botón floral, compatibles visualmente con pulgones.",
     "recommendation": "Aislar temporalmente la planta, revisar brotes y envés de las hojas y retirar los insectos con agua. Si persisten, utilizar jabón potásico siguiendo las instrucciones del producto."
@@ -712,13 +816,23 @@ EJEMPLO 1 - PULGONES
 
 ------------------------------------------------------------
 
-EJEMPLO 2 - FLOR MARCHITA
+EJEMPLO 2 - SÁBILA CON MARCHITEZ (MEDICINAL)
 
 {
     "status": "enfermedad_posible",
+    "nombre_planta": "Aloe vera / Sábila",
+    "nombre_cientifico": "Aloe vera",
+    "familia": "Asphodelaceae",
+    "caracteristicas": {
+        "hoja": "Hojas carnosas, alargadas, en roseta, con bordes dentados.",
+        "tallo": "Tallo corto, casi imperceptible bajo la roseta de hojas.",
+        "epoca": "Crecimiento activo todo el año en climas cálidos.",
+        "clima": "Cálido y seco, tolera sequía, requiere buena luz.",
+        "riego": "Riego escaso y espaciado, dejar secar el sustrato por completo entre riegos."
+    },
     "tipo_problema": "Marchitez o estrés hídrico",
-    "observation": "La flor presenta pétalos caídos, arrugados y con pérdida visible de firmeza. No se observan insectos ni signos claros de infestación.",
-    "recommendation": "Revisar la humedad del sustrato, la frecuencia de riego y el drenaje. Evitar tanto el exceso como la falta de agua y retirar las flores completamente secas."
+    "observation": "Las hojas presentan pérdida de firmeza y arrugamiento visible. No se observan insectos ni signos claros de infestación.",
+    "recommendation": "Revisar la frecuencia de riego, ya que el exceso de agua es una causa común en esta especie. Comprobar que el sustrato drene bien y evitar el encharcamiento."
 }
 
 ------------------------------------------------------------
@@ -727,6 +841,16 @@ EJEMPLO 3 - PLANTA SALUDABLE
 
 {
     "status": "sin_problemas",
+    "nombre_planta": "Menta",
+    "nombre_cientifico": "Mentha spicata",
+    "familia": "Lamiaceae",
+    "caracteristicas": {
+        "hoja": "Hojas ovaladas, bordes dentados, superficie rugosa y aromática.",
+        "tallo": "Tallo herbáceo, cuadrangular, rastrero o erecto.",
+        "epoca": "Crecimiento activo en primavera y verano.",
+        "clima": "Templado, prefiere semisombra y humedad constante.",
+        "riego": "Riego frecuente, manteniendo el sustrato húmedo sin encharcar."
+    },
     "tipo_problema": "Ninguno",
     "observation": "La planta presenta una apariencia general saludable y no se observan insectos, daños, marchitez significativa ni signos evidentes de enfermedad.",
     "recommendation": "Continuar con el cuidado habitual y revisar periódicamente hojas, tallos, brotes y flores."
@@ -738,8 +862,18 @@ EJEMPLO 4 - IMAGEN NO CONCLUYENTE
 
 {
     "status": "inconcluso",
+    "nombre_planta": "No identificada",
+    "nombre_cientifico": "No disponible",
+    "familia": "No disponible",
+    "caracteristicas": {
+        "hoja": "Información no disponible",
+        "tallo": "Información no disponible",
+        "epoca": "Información no disponible",
+        "clima": "Información no disponible",
+        "riego": "Información no disponible"
+    },
     "tipo_problema": "Imagen no concluyente",
-    "observation": "La fotografía no muestra suficiente detalle para identificar con confianza la presencia de una plaga, enfermedad u otro problema.",
+    "observation": "La fotografía no muestra suficiente detalle para identificar con confianza la planta ni la presencia de una plaga, enfermedad u otro problema.",
     "recommendation": "Tomar una fotografía más cercana, enfocada y bien iluminada de la zona afectada."
 }
 
@@ -749,6 +883,16 @@ EJEMPLO 5 - LA IMAGEN NO MUESTRA UNA PLANTA
 
 {
     "status": "inconcluso",
+    "nombre_planta": "No identificada",
+    "nombre_cientifico": "No disponible",
+    "familia": "No disponible",
+    "caracteristicas": {
+        "hoja": "Información no disponible",
+        "tallo": "Información no disponible",
+        "epoca": "Información no disponible",
+        "clima": "Información no disponible",
+        "riego": "Información no disponible"
+    },
     "tipo_problema": "No se observa una planta",
     "observation": "La imagen proporcionada no muestra una planta o una parte de una planta que pueda analizarse.",
     "recommendation": "Subir una fotografía clara de la planta, preferiblemente mostrando hojas, tallos, brotes, flores o la zona afectada."
@@ -855,6 +999,50 @@ def limpiar_json(texto: str):
 
 
 # ============================================================
+# 6.1 CARACTERÍSTICAS / RESPUESTA DE ERROR POR DEFECTO
+# ============================================================
+
+CARACTERISTICAS_NO_DISPONIBLES = {
+    "hoja": "Información no disponible",
+    "tallo": "Información no disponible",
+    "epoca": "Información no disponible",
+    "clima": "Información no disponible",
+    "riego": "Información no disponible"
+}
+
+
+def respuesta_error(
+    tipo_problema: str,
+    observation: str,
+    recommendation: str
+) -> dict:
+
+    return {
+
+        "status": "inconcluso",
+
+        "nombre_planta": "No identificada",
+
+        "nombre_cientifico": "No disponible",
+
+        "familia": "No disponible",
+
+        "caracteristicas": dict(
+            CARACTERISTICAS_NO_DISPONIBLES
+        ),
+
+        "tipo_problema": tipo_problema,
+
+        "severidad": "desconocida",
+
+        "observation": observation,
+
+        "recommendation": recommendation
+
+    }
+
+
+# ============================================================
 # 7. ENDPOINT ANALIZAR
 # ============================================================
 
@@ -873,21 +1061,11 @@ async def analizar(
 
         if not contenido:
 
-            return {
-
-                "status": "inconcluso",
-
-                "tipo_problema": "error",
-
-                "severidad": "desconocida",
-
-                "observation":
-                    "La imagen enviada está vacía.",
-
-                "recommendation":
-                    "Selecciona otra fotografía."
-
-            }
+            return respuesta_error(
+                "error",
+                "La imagen enviada está vacía.",
+                "Selecciona otra fotografía."
+            )
 
 
         # ----------------------------------------------------
@@ -915,21 +1093,11 @@ async def analizar(
 
         if mime_type not in formatos_permitidos:
 
-            return {
-
-                "status": "inconcluso",
-
-                "tipo_problema": "formato_no_compatible",
-
-                "severidad": "desconocida",
-
-                "observation":
-                    "El formato de imagen no es compatible.",
-
-                "recommendation":
-                    "Utiliza una fotografía JPG, PNG o WEBP."
-
-            }
+            return respuesta_error(
+                "formato_no_compatible",
+                "El formato de imagen no es compatible.",
+                "Utiliza una fotografía JPG, PNG o WEBP."
+            )
 
 
         # ----------------------------------------------------
@@ -1026,21 +1194,11 @@ async def analizar(
                 response.text
             )
 
-            return {
-
-                "status": "inconcluso",
-
-                "tipo_problema": "error_api",
-
-                "severidad": "desconocida",
-
-                "observation":
-                    "No se pudo completar el análisis con la inteligencia artificial.",
-
-                "recommendation":
-                    "Intenta nuevamente dentro de unos minutos."
-
-            }
+            return respuesta_error(
+                "error_api",
+                "No se pudo completar el análisis con la inteligencia artificial.",
+                "Intenta nuevamente dentro de unos minutos."
+            )
 
 
         # ----------------------------------------------------
@@ -1069,21 +1227,11 @@ async def analizar(
 
             print(datos)
 
-            return {
-
-                "status": "inconcluso",
-
-                "tipo_problema": "error_respuesta",
-
-                "severidad": "desconocida",
-
-                "observation":
-                    "La inteligencia artificial devolvió una respuesta inesperada.",
-
-                "recommendation":
-                    "Intenta nuevamente."
-
-            }
+            return respuesta_error(
+                "error_respuesta",
+                "La inteligencia artificial devolvió una respuesta inesperada.",
+                "Intenta nuevamente."
+            )
 
 
         print(
@@ -1111,21 +1259,11 @@ async def analizar(
                 f"⚠️ Error interpretando JSON: {error}"
             )
 
-            return {
-
-                "status": "inconcluso",
-
-                "tipo_problema": "desconocido",
-
-                "severidad": "desconocida",
-
-                "observation":
-                    "La imagen fue analizada, pero no se pudo interpretar correctamente la respuesta.",
-
-                "recommendation":
-                    "Intenta nuevamente con una fotografía más clara."
-
-            }
+            return respuesta_error(
+                "desconocido",
+                "La imagen fue analizada, pero no se pudo interpretar correctamente la respuesta.",
+                "Intenta nuevamente con una fotografía más clara."
+            )
 
 
         # ----------------------------------------------------
@@ -1170,6 +1308,29 @@ async def analizar(
             severidad = "desconocida"
 
 
+        # CARACTERÍSTICAS DE LA PLANTA
+        caracteristicas_ia = resultado.get(
+            "caracteristicas",
+            {}
+        )
+
+        if not isinstance(caracteristicas_ia, dict):
+
+            caracteristicas_ia = {}
+
+        caracteristicas = {
+
+            campo: caracteristicas_ia.get(
+                campo,
+                valor_defecto
+            )
+
+            for campo, valor_defecto
+            in CARACTERISTICAS_NO_DISPONIBLES.items()
+
+        }
+
+
         # ----------------------------------------------------
         # RESPUESTA FINAL
         # ----------------------------------------------------
@@ -1178,6 +1339,27 @@ async def analizar(
 
             "status":
                 status,
+
+            "nombre_planta":
+                resultado.get(
+                    "nombre_planta",
+                    "No identificada"
+                ),
+
+            "nombre_cientifico":
+                resultado.get(
+                    "nombre_cientifico",
+                    "No disponible"
+                ),
+
+            "familia":
+                resultado.get(
+                    "familia",
+                    "No disponible"
+                ),
+
+            "caracteristicas":
+                caracteristicas,
 
             "tipo_problema":
                 resultado.get(
@@ -1201,6 +1383,29 @@ async def analizar(
                 )
 
         }
+
+
+        # ----------------------------------------------------
+        # GUARDAR EN "MIS PLANTAS"
+        # ----------------------------------------------------
+
+        try:
+
+            guardado = storage.guardar_analisis(
+                respuesta_final,
+                contenido,
+                mime_type
+            )
+
+            respuesta_final["id"] = guardado["id"]
+            respuesta_final["imagen_url"] = guardado["imagen_url"]
+            respuesta_final["fecha"] = guardado["fecha"]
+
+        except Exception as error_guardado:
+
+            print(
+                f"⚠️ No se pudo guardar en Mis Plantas: {error_guardado}"
+            )
 
 
         print(
@@ -1229,21 +1434,11 @@ async def analizar(
             "❌ Timeout NVIDIA"
         )
 
-        return {
-
-            "status": "inconcluso",
-
-            "tipo_problema": "error_timeout",
-
-            "severidad": "desconocida",
-
-            "observation":
-                "El análisis tardó demasiado tiempo.",
-
-            "recommendation":
-                "Intenta nuevamente."
-
-        }
+        return respuesta_error(
+            "error_timeout",
+            "El análisis tardó demasiado tiempo.",
+            "Intenta nuevamente."
+        )
 
 
     # ========================================================
@@ -1256,21 +1451,11 @@ async def analizar(
             "❌ Error de conexión con NVIDIA"
         )
 
-        return {
-
-            "status": "inconcluso",
-
-            "tipo_problema": "error_conexion",
-
-            "severidad": "desconocida",
-
-            "observation":
-                "No se pudo conectar con el servicio de inteligencia artificial.",
-
-            "recommendation":
-                "Verifica la conexión a Internet e intenta nuevamente."
-
-        }
+        return respuesta_error(
+            "error_conexion",
+            "No se pudo conectar con el servicio de inteligencia artificial.",
+            "Verifica la conexión a Internet e intenta nuevamente."
+        )
 
 
     # ========================================================
@@ -1283,21 +1468,65 @@ async def analizar(
             f"❌ ERROR GENERAL: {str(e)}"
         )
 
-        return {
+        return respuesta_error(
+            "error",
+            f"Ocurrió un error durante el análisis: {str(e)}",
+            "Intenta nuevamente."
+        )
 
-            "status": "inconcluso",
 
-            "tipo_problema": "error",
+# ============================================================
+# 7.1 ENDPOINTS "MIS PLANTAS"
+# ============================================================
 
-            "severidad": "desconocida",
+@app.get("/plantas")
+def listar_plantas():
 
-            "observation":
-                f"Ocurrió un error durante el análisis: {str(e)}",
+    return storage.listar_analisis()
 
-            "recommendation":
-                "Intenta nuevamente."
 
-        }
+@app.get("/plantas/{id_planta}")
+def obtener_planta(id_planta: int):
+
+    planta = storage.obtener_analisis(id_planta)
+
+    if planta is None:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Planta no encontrada."
+        )
+
+    return planta
+
+
+@app.delete("/plantas/{id_planta}")
+def eliminar_planta(id_planta: int):
+
+    eliminado = storage.eliminar_analisis(id_planta)
+
+    if not eliminado:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Planta no encontrada."
+        )
+
+    return {
+        "eliminado": True,
+        "id": id_planta
+    }
+
+
+@app.delete("/plantas")
+def eliminar_todas_las_plantas():
+
+    cantidad = storage.eliminar_todos()
+
+    return {
+        "eliminado": True,
+        "cantidad": cantidad
+    }
 
 
 # ============================================================
@@ -1314,7 +1543,7 @@ if __name__ == "__main__":
     )
 
     print(
-        "🌿 DETECTOR DE PLAGAS EN PLANTAS ORNAMENTALES"
+        "🌿 DETECTOR DE PLAGAS EN PLANTAS ORNAMENTALES Y MEDICINALES"
     )
 
     print(
